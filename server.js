@@ -1,12 +1,13 @@
 const { Telegraf, Markup } = require("telegraf");
 const axios = require("axios");
 const cheerio = require("cheerio");
+require("dotenv").config({
+  path: "./.env",
+});
 
-BOT_TOKEN = "6784176342:AAGWXqMnydL2NXrFnv1geiTd7ICI9zJZxvQ";
+const bot = new Telegraf(process.env.BOT_TOKEN);
 
-const bot = new Telegraf(BOT_TOKEN);
-
-bot.start((ctx) => ctx.reply("Welcome!"));
+bot.start((ctx) => ctx.reply("Welcome to Bangla Plex Bot!"));
 
 bot.on("inline_query", async (ctx) => {
   const query = ctx.inlineQuery.query;
