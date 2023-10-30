@@ -5,7 +5,11 @@ require("dotenv").config({
   path: "./.env",
 });
 
+const express = require("express");
+const app = express();
+
 const bot = new Telegraf(process.env.BOT_TOKEN);
+const port = process.env.PORT || 3000;
 
 bot.start((ctx) => ctx.reply("Welcome to Bangla Plex Bot!"));
 
@@ -13,63 +17,35 @@ bot.on("inline_query", async (ctx) => {
   const query = ctx.inlineQuery.query;
 
   if (query) {
-    const url = `https://banglaplex.fun/home/autocompleteajax?term=${query}`;
+    const url = `https://banglaplexapi.bymirrorx.eu.org/search?q=${query}`;
 
     try {
       const response = await axios.get(url);
       const results = response.data;
 
-      // Create an array of promises to fetch and process each URL
       const promises = results.map(async (result, index) => {
         try {
-          const response = await axios.get(result.url);
-          const $ = cheerio.load(response.data);
-          const title = $(".title").text().trim().toUpperCase();
+          const response = await axios.get("https://banglaplexapi.bymirrorx.eu.org" + result.url);
+          
+          const title = response.data.title.toUpperCase();
 
           if (title) {
-            const description =
-              $(".col-md-9 .col-md-12 p:nth-of-type(2)").text().trim() || "";
-            const image = $(".col-md-3 img").attr("src") || "";
-            const duration =
-              $("div.col-md-6:nth-of-type(2) p:nth-of-type(1)")
-                .text()
-                .trim()
-                .split(":") || "";
-            const imdb =
-              $("div.col-md-6:nth-of-type(2) p:nth-child(4)").text().trim() ||
-              "";
-            const release =
-              $(".col-md-6.text-left p:nth-child(6)")
-                .text()
-                .trim()
-                .split(":") || "";
-            const quality = $("p span.label").text().trim() || "";
-            const video = $("iframe").attr("src") || result.url;
-
-            function formatDownloadLink(link) {
-              return link
-                .replace(/-/, "")
-                .replace(/-/, " (")
-                .replace(/-/, ") - ");
-            }
-            const downloadLinks = $("#download a").map(function () {
-              const href = $(this).attr("href");
-              const serverName = $(this).text().toUpperCase();
-              return {
-                href: href,
-                serverName: formatDownloadLink(serverName),
-              };
-            });
-
-            const downloadLinksArray = downloadLinks.get();
+            const description = response.data.description || "";
+            const image = response.data.image || "";
+            const duration = response.data.duration || "";
+            const imdb = response.data.imdb || "";
+            const release = response.data.release || "";
+            const quality = response.data.quality || "";
+            const video = response.data.stream || result.url;
+            const downloadLinksArray = response.data.downloadLinks;
             const downloadButtonMarkup = downloadLinksArray.map((link) => {
-              const { href, serverName } = link;
-              return [Markup.button.url(serverName, href)];
+              const { dlUrl, dlServer } = link;
+              return [Markup.button.url(dlServer, dlUrl)];
             });
 
             const streamButton = Markup.button.url("Stream Now", video);
 
-            const message = `<b>${title}</b>\n<b>➥ Rating:</b> <i>${imdb}</i>\n<b>➥ Duration:</b> <i>${duration[1].trim()}</i>\n<b>➥ Quality:</b> <i>${quality}</i>\n<b>➥ Release Date:</b> <i>${release[1].trim()}</i>\n<b>➥ Description: </b><i>${description}</i>`;
+            const message = `<b>${title}</b>\n<b>➥ Rating:</b> <i>${imdb}</i>\n<b>➥ Duration:</b> <i>${duration}</i>\n<b>➥ Quality:</b> <i>${quality}</i>\n<b>➥ Release Date:</b> <i>${release}</i>\n<b>➥ Description: </b><i>${description}</i>`;
 
             return {
               type: "article",
@@ -104,4 +80,11 @@ bot.on("inline_query", async (ctx) => {
   }
 });
 
+app.get("/", (req, res) => {
+  res.send(`Bangla Plex Bot is Running on port ${port}!`);
+});
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
 bot.launch();
